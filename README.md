@@ -1,5 +1,10 @@
 # jQuery File Upload Plugin
 
+Patched version that corrects that rotates the image, during resizing, by reading the correct orientation from the exif headers.
+You need to inclide patched load-image.js.
+You need to include binaryajax.js and exif.js from https://github.com/jseidelin/exif-js.
+Rotation code was taken from https://github.com/stomita/ios-imagefile-megapixel.
+
 ## Demo
 [Demo File Upload](http://blueimp.github.com/jQuery-File-Upload/)
 
