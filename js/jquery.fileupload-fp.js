@@ -10,7 +10,7 @@
  */
 
 /*jslint nomen: true, unparam: true, regexp: true */
-/*global define, window, document */
+/*global define, window, document, EXIF, BinaryFile, console */
 
 (function (factory) {
     'use strict';
@@ -98,22 +98,73 @@
                 }
                 return dfd.promise();
             },
+            rotate: function(data, options) {
+                var that = this,
+                    file = data.files[data.index],
+                    dfd = $.Deferred(),
+                    img = data.img,
+                    canvas;
+
+                var reader = new FileReader();
+                reader.onload = function(e) {
+                    var content = event.target.result;
+                    var binaryResponse = new BinaryFile(content);
+
+                    var exif_data = EXIF.readFromBinaryFile(binaryResponse);
+                    console.log("exif data", exif_data);
+                    if (exif_data.Orientation == 6) {
+
+                        canvas = loadImage.scale(img, {canvas: true});
+                        var c_width = canvas.width;
+                        var c_height = canvas.height;
+                        canvas.width = c_height;
+                        canvas.height = c_width;
+
+                        var ctxtarget = canvas.getContext("2d");
+                        ctxtarget.translate(c_height, 0);
+                        ctxtarget.rotate(Math.PI / 2);
+                        ctxtarget.drawImage(img, 0, 0);
+
+                        data.canvas = canvas;
+                        data.img = canvas;
+                        dfd.resolveWith(that, [data]);
+                    }
+                    else{
+                        dfd.rejectWith(that, [data]);
+                    }
+                };
+                reader.readAsBinaryString(file);
+                return dfd.promise();
+            },
             // Resizes the image given as data.img and updates
             // data.canvas with the resized image as canvas element.
             // Accepts the options maxWidth, maxHeight, minWidth and
             // minHeight to scale the given image:
             resize: function (data, options) {
                 var img = data.img,
-                    canvas;
-                options = $.extend({canvas: true}, options);
-                if (img) {
-                    canvas = loadImage.scale(img, options);
-                    if (canvas.width !== img.width ||
-                            canvas.height !== img.height) {
+                    canvas,
+                    that = this,
+                    file = data.files[data.index],
+                    dfd = $.Deferred();
+
+                var reader = new FileReader();
+                reader.onload = function(e) {
+                    var content = event.target.result;
+                    var binaryResponse = new BinaryFile(content);
+                    var exif_data = EXIF.readFromBinaryFile(binaryResponse);
+                    var orientation = exif_data.Orientation;
+                    options = $.extend({
+                        canvas: true,
+                        orientation: orientation}, options);
+
+                    if (img) {
+                        canvas = loadImage.scale(img, options);
                         data.canvas = canvas;
                     }
-                }
-                return data;
+                    dfd.resolveWith(that, [data]);
+                };
+                reader.readAsBinaryString(file);
+                return dfd.promise();
             },
             // Saves the processed image given as data.canvas
             // inplace at data.index of data.files:
